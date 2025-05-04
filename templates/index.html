@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Connect Four</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1e1e2f;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: start;
+            height: 100vh;
+            margin: 0;
+            padding-top: 20px;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+        }
+
+        #board {
+            display: grid;
+            grid-template-columns: repeat(7, 70px);
+            grid-gap: 5px;
+            margin-top: 20px;
+            background-color: #0f1a2b;
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        .cell {
+            width: 70px;
+            height: 70px;
+            background-color: #2e3d55;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .cell:hover {
+            transform: scale(1.1);
+            background-color: #3e4e6e;
+        }
+
+        .piece {
+            width: 60%;
+            height: 60%;
+            border-radius: 50%;
+        }
+
+        .player1 {
+            background-color: red;
+        }
+
+        .player2 {
+            background-color: yellow;
+        }
+
+        #status {
+            margin-top: 20px;
+            font-size: 1.2rem;
+        }
+
+        button {
+            margin-top: 15px;
+            padding: 10px 20px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 5px;
+            background-color: #4e6aff;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #364fc7;
+        }
+    </style>
+</head>
+<body>
+    <h1>Connect Four</h1>
+    <div id="board"></div>
+    <div id="status">Your turn!</div>
+    <button onclick="resetGame()">Reset Game</button>
+
+    <script>
+        const ROWS = 6;
+        const COLS = 7;
+        let board = [];
+
+        const boardEl = document.getElementById("board");
+        const statusEl = document.getElementById("status");
+
+        function createBoard() {
+            boardEl.innerHTML = "";
+            for (let r = 0; r < ROWS; r++) {
+                board[r] = [];
+                for (let c = 0; c < COLS; c++) {
+                    board[r][c] = 0;
+                    const cell = document.createElement("div");
+                    cell.classList.add("cell");
+                    cell.dataset.row = r;
+                    cell.dataset.col = c;
+                    cell.addEventListener("click", () => makeMove(c));
+                    boardEl.appendChild(cell);
+                }
+            }
+        }
+
+        function renderBoard() {
+            document.querySelectorAll(".cell").forEach(cell => {
+                const row = cell.dataset.row;
+                const col = cell.dataset.col;
+                const value = board[row][col];
+                cell.innerHTML = "";
+
+                if (value !== 0) {
+                    const piece = document.createElement("div");
+                    piece.classList.add("piece");
+                    piece.classList.add(value === 1 ? "player1" : "player2");
+                    cell.appendChild(piece);
+                }
+            });
+        }
+
+        async function makeMove(col) {
+            try {
+                const res = await fetch("/move", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ column: col })
+                });
+
+                const data = await res.json();
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+
+                board = data.board;
+                renderBoard();
+
+                if (data.winner) {
+                    statusEl.textContent = data.winner === 1 ? "You win!" : "AI wins!";
+                }
+            } catch (error) {
+                console.error("Error:", error);
+            }
+        }
+
+        async function resetGame() {
+            const res = await fetch("/reset", { method: "POST" });
+            const data = await res.json();
+            statusEl.textContent = "Your turn!";
+            createBoard();
+        }
+
+        createBoard();
+    </script>
+</body>
+</html>
+
